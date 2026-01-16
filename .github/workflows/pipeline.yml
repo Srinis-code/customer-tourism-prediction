@@ -16,6 +16,8 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python customer-tourism-prediction/visit-with-us/model_building/data_register.py
 
+        
+
   data-prep:
     needs: register-dataset
     runs-on: ubuntu-latest
