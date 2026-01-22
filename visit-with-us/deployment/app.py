@@ -8,7 +8,7 @@ import joblib
 # Load model
 # ---------------------------
 model_path = hf_hub_download(
-    repo_id="ksricheenu/customer-tourism-prediction-artifacts",
+    repo_id="ksricheenu/customer-tourism-prediction-model",
     filename="best_tourism_targeting_model_v1.joblib",
     repo_type="model"
 )
