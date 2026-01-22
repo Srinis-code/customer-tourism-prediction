@@ -56,3 +56,5 @@ for file_path in files:
             repo_type="dataset",
         )
         print(f"Uploaded {file_path} to Hugging Face dataset repo.")
+    except Exception as e:
+        print(f"Failed to upload {file_path}: {e}")
