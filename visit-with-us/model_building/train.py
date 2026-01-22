@@ -4,23 +4,38 @@ import joblib
 import os
 
 from datasets import load_dataset
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
 from huggingface_hub import HfApi, create_repo
 from huggingface_hub.utils import RepositoryNotFoundError
 
 # ---------------------------
-# Load dataset from HF
+# Load dataset
 # ---------------------------
-dataset = load_dataset(
-    "ksricheenu/customer-tourism-prediction-dataset"
-)
-
+dataset = load_dataset("ksricheenu/customer-tourism-prediction-dataset")
 df = dataset["train"].to_pandas()
 
 X = df.drop(columns=["ProdTaken"])
 y = df["ProdTaken"]
+
+# ---------------------------
+# Identify column types
+# ---------------------------
+categorical_cols = X.select_dtypes(include="object").columns.tolist()
+numerical_cols = X.select_dtypes(exclude="object").columns.tolist()
+
+# ---------------------------
+# Preprocessing
+# ---------------------------
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols),
+        ("num", "passthrough", numerical_cols),
+    ]
+)
 
 # ---------------------------
 # Handle class imbalance
@@ -28,17 +43,26 @@ y = df["ProdTaken"]
 class_weight = y.value_counts()[0] / y.value_counts()[1]
 
 # ---------------------------
-# Model + GridSearch
+# Model Pipeline
 # ---------------------------
-model = make_pipeline(
-    xgb.XGBClassifier(
-        scale_pos_weight=class_weight,
-        random_state=42,
-        tree_method="hist",
-        eval_metric="logloss"
-    )
+pipeline = Pipeline(
+    steps=[
+        ("preprocess", preprocessor),
+        (
+            "xgbclassifier",
+            xgb.XGBClassifier(
+                scale_pos_weight=class_weight,
+                random_state=42,
+                tree_method="hist",
+                eval_metric="logloss",
+            ),
+        ),
+    ]
 )
 
+# ---------------------------
+# Grid Search
+# ---------------------------
 param_grid = {
     "xgbclassifier__n_estimators": [50, 100],
     "xgbclassifier__max_depth": [3, 4],
@@ -46,7 +70,7 @@ param_grid = {
 }
 
 grid = GridSearchCV(
-    model,
+    pipeline,
     param_grid,
     scoring="recall",
     cv=5,
@@ -61,17 +85,16 @@ print("Best Params:", grid.best_params_)
 # ---------------------------
 # Evaluation
 # ---------------------------
-print("\nTraining Report")
 print(classification_report(y, best_model.predict(X)))
 
 # ---------------------------
-# Save model
+# Save Model
 # ---------------------------
 model_file = "best_tourism_targeting_model_v1.joblib"
 joblib.dump(best_model, model_file)
 
 # ---------------------------
-# Upload model to HF
+# Upload to HF
 # ---------------------------
 repo_id = "ksricheenu/customer-tourism-prediction-model"
 api = HfApi(token=os.getenv("HF_TOKEN"))
@@ -85,5 +108,7 @@ api.upload_file(
     path_or_fileobj=model_file,
     path_in_repo=model_file,
     repo_id=repo_id,
-    repo_type="model"
+    repo_type="model",
 )
+
+print("Model uploaded successfully")
