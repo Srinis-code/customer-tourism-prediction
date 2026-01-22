@@ -24,5 +24,5 @@ folder_path = "visit-with-us/data"
 api.upload_folder(
     folder_path=folder_path,
     repo_id="ksricheenu/customer-tourism-prediction-dataset",
-    repo_type="dataset",
+    repo_type="dataset"
 )
