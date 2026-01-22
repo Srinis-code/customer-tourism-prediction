@@ -90,4 +90,4 @@ api.upload_file(
     repo_type="model"
 )
 
-print("✅ Model uploaded successfully")
+print("Model uploaded successfully")
