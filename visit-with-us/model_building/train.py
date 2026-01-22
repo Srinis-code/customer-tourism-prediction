@@ -3,6 +3,7 @@ import xgboost as xgb
 import joblib
 import os
 
+from datasets import load_dataset
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
@@ -10,22 +11,21 @@ from huggingface_hub import HfApi, create_repo
 from huggingface_hub.utils import RepositoryNotFoundError
 
 # ---------------------------
-# Load datasets from HF
+# Load dataset from HF
 # ---------------------------
-Xtrain_path = "hf://datasets/ksricheenu/customer-tourism-prediction-dataset/Xtrain.csv"
-Xtest_path  = "hf://datasets/ksricheenu/customer-tourism-prediction-dataset/Xtest.csv"
-ytrain_path = "hf://datasets/ksricheenu/customer-tourism-prediction-dataset/ytrain.csv"
-ytest_path  = "hf://datasets/ksricheenu/customer-tourism-prediction-dataset/ytest.csv"
+dataset = load_dataset(
+    "ksricheenu/customer-tourism-prediction-dataset"
+)
 
-Xtrain = pd.read_csv(Xtrain_path)
-Xtest  = pd.read_csv(Xtest_path)
-ytrain = pd.read_csv(ytrain_path).squeeze()
-ytest  = pd.read_csv(ytest_path).squeeze()
+df = dataset["train"].to_pandas()
+
+X = df.drop(columns=["ProdTaken"])
+y = df["ProdTaken"]
 
 # ---------------------------
 # Handle class imbalance
 # ---------------------------
-class_weight = ytrain.value_counts()[0] / ytrain.value_counts()[1]
+class_weight = y.value_counts()[0] / y.value_counts()[1]
 
 # ---------------------------
 # Model + GridSearch
@@ -34,7 +34,8 @@ model = make_pipeline(
     xgb.XGBClassifier(
         scale_pos_weight=class_weight,
         random_state=42,
-        tree_method="hist"
+        tree_method="hist",
+        eval_metric="logloss"
     )
 )
 
@@ -52,7 +53,7 @@ grid = GridSearchCV(
     n_jobs=-1
 )
 
-grid.fit(Xtrain, ytrain)
+grid.fit(X, y)
 
 best_model = grid.best_estimator_
 print("Best Params:", grid.best_params_)
@@ -60,11 +61,8 @@ print("Best Params:", grid.best_params_)
 # ---------------------------
 # Evaluation
 # ---------------------------
-print("\nTrain Report")
-print(classification_report(ytrain, best_model.predict(Xtrain)))
-
-print("\nTest Report")
-print(classification_report(ytest, best_model.predict(Xtest)))
+print("\nTraining Report")
+print(classification_report(y, best_model.predict(X)))
 
 # ---------------------------
 # Save model
@@ -89,5 +87,3 @@ api.upload_file(
     repo_id=repo_id,
     repo_type="model"
 )
-
-print("Model uploaded successfully")
