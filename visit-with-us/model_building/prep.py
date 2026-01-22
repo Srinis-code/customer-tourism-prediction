@@ -1,4 +1,3 @@
-# for data manipulation
 import pandas as pd
 import sklearn
 # for creating a folder
@@ -12,7 +11,8 @@ from huggingface_hub import login, HfApi
 
 # Define constants for the dataset and output paths
 api = HfApi(token=os.getenv("HF_TOKEN"))
-DATASET_PATH = "hf://datasets/ksricheenu/customer-tourism-prediction-model/tourism.csv"
+DATASET_PATH = "visit-with-us/data/tourism.csv"
+
 df = pd.read_csv(DATASET_PATH)
 print("Dataset loaded successfully.")
 
@@ -42,13 +42,16 @@ Xtest.to_csv("Xtest.csv",index=False)
 ytrain.to_csv("ytrain.csv",index=False)
 ytest.to_csv("ytest.csv",index=False)
 
+print("Train/test CSVs saved locally.")
 
+# Upload files to Hugging Face (if HF_TOKEN is valid)
 files = ["Xtrain.csv","Xtest.csv","ytrain.csv","ytest.csv"]
-
 for file_path in files:
-    api.upload_file(
-        path_or_fileobj=file_path,
-        path_in_repo=file_path.split("/")[-1],  # just the filename
-        repo_id="ksricheenu/customer-tourism-prediction-model",
-        repo_type="dataset",
-    )
+    try:
+        api.upload_file(
+            path_or_fileobj=file_path,
+            path_in_repo=file_path.split("/")[-1],  # just the filename
+            repo_id="ksricheenu/customer-tourism-prediction-model",
+            repo_type="dataset",
+        )
+        print(f"Uploaded {file_path} to Hugging Face dataset repo.")
