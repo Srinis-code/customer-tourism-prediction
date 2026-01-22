@@ -6,7 +6,7 @@ import os
 api = HfApi(token=os.getenv("HF_TOKEN"))
 
 repo_id="ksricheenu/customer-tourism-prediction-dataset",
-repo_type="dataset",
+repo_type="dataset"
 
 # Step 1: Check if the space exists
 try:
