@@ -2,9 +2,6 @@ from huggingface_hub.utils import RepositoryNotFoundError, HfHubHTTPError
 from huggingface_hub import HfApi, create_repo
 import os
 
-repo_id = "ksricheenu/customer-tourism-prediction-model"
-repo_type = "dataset"
-
 # Initialize API client
 api = HfApi(token=os.getenv("HF_TOKEN"))
 
@@ -17,8 +14,12 @@ except RepositoryNotFoundError:
     create_repo(repo_id=repo_id, repo_type=repo_type, private=False)
     print(f"Space '{repo_id}' created.")
 
+# Path relative to the repo root in GitHub Actions
+folder_path = "visit-with-us/data"
+
+# Upload the folder
 api.upload_folder(
-    folder_path="/content/customer-tourism-prediction/visit-with-us/data",
-    repo_id=repo_id,
-    repo_type=repo_type,
+    folder_path=folder_path,
+    repo_id="ksricheenu/customer-tourism-prediction-dataset",
+    repo_type="dataset",
 )
